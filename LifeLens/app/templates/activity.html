@@ -1,0 +1,117 @@
+{% extends "base.html" %}
+{% block title %}Activity Tracker{% endblock %}
+
+{% block content %}
+
+<div class="activity-page-header">
+    <div class="activity-page-title">
+        <h2>Activity Tracker</h2>
+        <p>Log and monitor your daily activities</p>
+    </div>
+    <button class="activity-add-btn" onclick="openActivityModal()">
+        <i class="fas fa-plus"></i> Add Activity
+    </button>
+</div>
+
+<!-- Activity Cards -->
+{% if activities %}
+    {% for act in activities %}
+    <div class="activity-card">
+        <div class="activity-card-header">
+            <div class="activity-card-title">
+                <h3>{{ act.title }}</h3>
+                <p>{{ act.category }}</p>
+            </div>
+            <span class="activity-intensity-badge activity-badge-{{ act.intensity }}">{{ act.intensity }}</span>
+        </div>
+
+        <div style="display: flex; justify-content: space-between; align-items: end;">
+            <div class="activity-card-stats">
+                <div class="activity-stat-item">
+                    <i class="fas fa-clock"></i>
+                    <span>{{ act.duration }} min</span>
+                </div>
+                <div class="activity-stat-item">
+                    <i class="fas fa-fire"></i>
+                    <span>{{ act.calories }} cal</span>
+                </div>
+            </div>
+            <div class="activity-card-date">{{ act.date.strftime('%d/%m/%Y') }}</div>
+        </div>
+
+        {% if act.notes %}
+        <div class="activity-card-notes" style="margin-top: 1rem;">{{ act.notes }}</div>
+        {% endif %}
+    </div>
+    {% endfor %}
+{% else %}
+    <p class="text-muted">No activities logged yet. Add your first one!</p>
+{% endif %}
+
+<!-- Modal -->
+<div class="activity-modal-overlay" id="activityModal" onclick="closeModalOnOverlay(event)">
+    <div class="activity-modal">
+        <div class="activity-modal-header">
+            <h3 class="activity-modal-title">New Activity</h3>
+            <button class="activity-modal-close" onclick="closeActivityModal()">
+                <i class="fas fa-times"></i>
+            </button>
+        </div>
+        <div class="activity-modal-body">
+            <form action="{{ url_for('main.add_activity') }}" method="POST">
+                <div class="activity-form-group">
+                    <label class="activity-form-label">Activity Type</label>
+                    <select class="activity-form-select" name="category" required>
+                        <option value="">Select type...</option>
+                        <option value="Exercise">Exercise</option>
+                        <option value="Social">Social</option>
+                        <option value="Work">Work</option>
+                        <option value="Hobby">Hobby</option>
+                        <option value="Rest">Rest</option>
+                    </select>
+                </div>
+
+                <div class="activity-form-group">
+                    <label class="activity-form-label">Title</label>
+                    <input type="text" class="activity-form-input" name="title" placeholder="e.g., Morning Run" required>
+                </div>
+
+                <div class="activity-form-row">
+                    <div class="activity-form-group">
+                        <label class="activity-form-label">Duration (min)</label>
+                        <input type="number" class="activity-form-input" name="duration" required>
+                    </div>
+                    <div class="activity-form-group">
+                        <label class="activity-form-label">Calories</label>
+                        <input type="number" class="activity-form-input" name="calories" required>
+                    </div>
+                </div>
+
+                <div class="activity-form-group">
+                    <label class="activity-form-label">Intensity</label>
+                    <select class="activity-form-select" name="intensity" required>
+                        <option value="low">Low</option>
+                        <option value="medium">Medium</option>
+                        <option value="high">High</option>
+                    </select>
+                </div>
+
+                <div class="activity-form-group">
+                    <label class="activity-form-label">Date</label>
+                    <input type="date" class="activity-form-input" name="date" required>
+                </div>
+
+                <div class="activity-form-group">
+                    <label class="activity-form-label">Notes</label>
+                    <textarea class="activity-form-textarea" name="notes" placeholder="How did it go?"></textarea>
+                </div>
+
+                <button type="submit" class="activity-form-submit">
+                    <i class="fas fa-save"></i> Save Activity
+                </button>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}
+

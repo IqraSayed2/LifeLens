@@ -1,0 +1,211 @@
+{% extends "base.html" %} 
+{% block title %}Mood Tracker{% endblock %} 
+{% block content %}
+
+<main class="mood-main-content">
+  <div class="mood-page-header">
+    <div class="mood-page-title">
+      <h2>Mood Tracker</h2>
+      <p>Track your emotional wellness and energy</p>
+    </div>
+    <button class="mood-log-btn" onclick="openMoodModal()">
+      <i class="fas fa-plus"></i> Log Mood
+    </button>
+  </div>
+
+  {% for mood in moods %}
+  <div class="mood-card">
+    <div class="mood-card-header">
+      <div class="mood-card-title-section">
+        <div class="mood-emoji-circle">
+          {% if mood.mood_type == 'happy' %}😊 
+          {% elif mood.mood_type == 'sad' %}😢 
+          {% elif mood.mood_type == 'neutral' %}😐 
+          {% elif mood.mood_type == 'stressed' %}😣 
+          {% elif mood.mood_type == 'excited' %}😄 
+          {% elif mood.mood_type == 'anxious' %}😰 
+          {% endif %}
+        </div>
+        <div class="mood-card-title-text">
+          <h3>{{ mood.mood_type|capitalize }}</h3>
+          <p>{{ mood.date.strftime('%d %b %Y') }}</p>
+        </div>
+      </div>
+      <div class="mood-score-badge">{{ mood.mood_score }}</div>
+    </div>
+
+    <div class="mood-stats-row">
+      <div class="mood-stat-item">
+        <div class="mood-stat-label">Mood</div>
+        <div class="mood-stat-value">{{ mood.mood_score }}/10</div>
+      </div>
+      <div class="mood-stat-item">
+        <div class="mood-stat-label">Energy</div>
+        <div class="mood-stat-value">{{ mood.energy_score }}/10</div>
+      </div>
+      <div class="mood-stat-item">
+        <div class="mood-stat-label">Stress</div>
+        <div class="mood-stat-value">{{ mood.stress_score }}/10</div>
+      </div>
+    </div>
+
+    {% if mood.notes %}
+    <div class="mood-notes-section">{{ mood.notes }}</div>
+    {% endif %}
+  </div>
+  {% else %}
+  <p class="text-muted">No mood entries yet. Log your first one!</p>
+  {% endfor %}
+</main>
+
+<!-- Mood Modal -->
+<div
+  class="mood-modal-overlay"
+  id="moodModal"
+  onclick="closeModalOnOverlay(event)"
+>
+  <div class="mood-modal">
+    <div class="mood-modal-header">
+      <h3 class="mood-modal-title">How are you feeling?</h3>
+      <button class="mood-modal-close" onclick="closeMoodModal()">
+        <i class="fas fa-times"></i>
+      </button>
+    </div>
+    <div class="mood-modal-body">
+      <form method="POST" action="{{ url_for('main.mood') }}">
+        <input type="hidden" name="mood_type" id="moodType" value="neutral" />
+
+        <div class="mood-form-group">
+          <label class="mood-form-label">Mood Type</label>
+          <div class="mood-type-grid">
+            <button
+              type="button"
+              class="mood-type-btn"
+              data-mood="happy"
+              onclick="selectMood(this)"
+            >
+              😊<span class="mood-type-label">Happy</span>
+            </button>
+            <button
+              type="button"
+              class="mood-type-btn"
+              data-mood="sad"
+              onclick="selectMood(this)"
+            >
+              😢<span class="mood-type-label">Sad</span>
+            </button>
+            <button
+              type="button"
+              class="mood-type-btn selected"
+              data-mood="neutral"
+              onclick="selectMood(this)"
+            >
+              😐<span class="mood-type-label">Neutral</span>
+            </button>
+            <button
+              type="button"
+              class="mood-type-btn"
+              data-mood="stressed"
+              onclick="selectMood(this)"
+            >
+              😣<span class="mood-type-label">Stressed</span>
+            </button>
+            <button
+              type="button"
+              class="mood-type-btn"
+              data-mood="excited"
+              onclick="selectMood(this)"
+            >
+              😄<span class="mood-type-label">Excited</span>
+            </button>
+            <button
+              type="button"
+              class="mood-type-btn"
+              data-mood="anxious"
+              onclick="selectMood(this)"
+            >
+              😰<span class="mood-type-label">Anxious</span>
+            </button>
+          </div>
+        </div>
+
+        <div class="mood-slider-container">
+          <div class="mood-slider-header">
+            <span class="mood-slider-title"
+              >Overall Mood:
+              <span class="mood-slider-value" id="moodValue">5/10</span></span
+            >
+          </div>
+          <input
+            type="range"
+            min="1"
+            max="10"
+            value="5"
+            name="mood_score"
+            class="mood-slider"
+            id="moodSlider"
+            oninput="updateSliderValue('mood', this.value)"
+          />
+        </div>
+
+        <div class="mood-slider-container">
+          <div class="mood-slider-header">
+            <span class="mood-slider-title"
+              >Energy Level:
+              <span class="mood-slider-value" id="energyValue">5/10</span></span
+            >
+          </div>
+          <input
+            type="range"
+            min="1"
+            max="10"
+            value="5"
+            name="energy_score"
+            class="mood-slider"
+            id="energySlider"
+            oninput="updateSliderValue('energy', this.value)"
+          />
+        </div>
+
+        <div class="mood-slider-container">
+          <div class="mood-slider-header">
+            <span class="mood-slider-title"
+              >Stress Level:
+              <span class="mood-slider-value" id="stressValue">5/10</span></span
+            >
+          </div>
+          <input
+            type="range"
+            min="1"
+            max="10"
+            value="5"
+            name="stress_score"
+            class="mood-slider"
+            id="stressSlider"
+            oninput="updateSliderValue('stress', this.value)"
+          />
+        </div>
+
+        <div class="mood-form-group">
+          <label class="mood-form-label">Date</label>
+          <input type="date" name="date" class="mood-form-input" required />
+        </div>
+
+        <div class="mood-form-group">
+          <label class="mood-form-label">Notes</label>
+          <textarea
+            name="notes"
+            class="mood-form-textarea"
+            placeholder="What's on your mind?"
+          ></textarea>
+        </div>
+
+        <button type="submit" class="mood-form-submit">
+          <i class="fas fa-save"></i> Save Mood
+        </button>
+      </form>
+    </div>
+  </div>
+</div>
+
+{% endblock %}

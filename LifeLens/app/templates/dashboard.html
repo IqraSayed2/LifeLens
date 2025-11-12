@@ -1,0 +1,10 @@
+{% extends "base.html" %}
+{% block title %}Dashboard{% endblock %}
+
+{% block content %}
+<div class="lifelens-welcome">
+    <h2>Welcome back, {{ user.name or user.username }}!</h2>
+    <p>Here's your wellness overview for this week</p>
+</div>
+
+{% endblock %}
