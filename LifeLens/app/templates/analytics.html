@@ -1,0 +1,760 @@
+{% extends "base.html" %} 
+{% block title %}Analytics Dashboard{% endblock %} 
+{% block content %}
+
+<div class="analytics-viewport">
+  <div class="analytics-header">
+    <div class="analytics-title">
+      <div
+        style="
+          width: 48px;
+          height: 48px;
+          border-radius: 10px;
+          background: linear-gradient(135deg, #14b8a6, #0891b2);
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          color: white;
+          font-weight: 800;
+          font-size: 1.5rem;
+        "
+      >
+        <i class="fas fa-chart-simple"></i>
+      </div>
+      <div>
+        <h2>Analytics</h2>
+        <div class="analytics-sub">View your wellness insights and trends</div>
+      </div>
+    </div>
+
+    <div style="display: flex; gap: 0.8rem;">
+      <button
+        class="btn-neon"
+        onclick="downloadAllCharts()"
+        style="
+          background: #14b8a6;
+          border: none;
+          color: white;
+          padding: 0.6rem 1.2rem;
+        "
+      >
+        Export Charts (PNG)
+      </button>
+      <button
+        class="btn-neon"
+        onclick="exportPageAsPDF()"
+        style="
+          background: #0891b2;
+          border: none;
+          color: white;
+          padding: 0.6rem 1.2rem;
+        "
+      >
+        Export Full Page (PDF)
+      </button>
+    </div>
+  </div>
+
+  <!-- Top stat cards -->
+  <div class="stats-grid">
+    <div class="stat-card">
+      <div class="label">Weekly Activities</div>
+      <div class="value">{{ total_weekly_activities }}</div>
+      <div class="sub">Sessions in last 7 days</div>
+    </div>
+
+    <div class="stat-card">
+      <div class="label">Calories Burned (Week)</div>
+      <div class="value">{{ total_calories_burned }} kcal</div>
+      <div class="sub">Total calories this week</div>
+    </div>
+
+    <div class="stat-card">
+      <div class="label">Average Mood</div>
+      <div class="value">{{ avg_mood }}/10</div>
+      <div class="sub">Average of recorded mood</div>
+    </div>
+
+    <div class="stat-card">
+      <div class="label">Habits Completed (Today)</div>
+      <div class="value">{{ completed_today }}</div>
+      <div class="sub">Completed out of your habits</div>
+    </div>
+
+    <div class="stat-card">
+      <div class="label">Water Intake (Today)</div>
+      <div class="value">{{ today_water }} ml</div>
+      <div class="sub">Total water logged today</div>
+    </div>
+
+    <div class="stat-card">
+      <div class="label">Active Streak</div>
+      <div class="value">{{ longest_streak }} d</div>
+      <div class="sub">Longest habit streak</div>
+    </div>
+  </div>
+
+  <div class="analytics-body">
+    <!-- Charts column -->
+    <div class="charts-card">
+      <div class="charts-row">
+        <div class="chart-wrap">
+          <div class="chart-header">
+            <h4>Weekly Activities</h4>
+            <div class="chart-actions">
+              <button
+                title="Toggle activities"
+                onclick="toggleDataset('activities')"
+              >
+                Toggle
+              </button>
+            </div>
+          </div>
+          <canvas id="activitiesChart"></canvas>
+        </div>
+
+        <div class="chart-wrap">
+          <div class="chart-header">
+            <h4>Calories Burned</h4>
+            <div class="chart-actions">
+              <button
+                title="Toggle calories"
+                onclick="toggleDataset('calories')"
+              >
+                Toggle
+              </button>
+            </div>
+          </div>
+          <canvas id="caloriesChart"></canvas>
+        </div>
+      </div>
+
+      <div class="charts-row">
+        <div class="chart-wrap" style="grid-column: span 2">
+          <div class="chart-header">
+            <h4>Weekly Mood Trend</h4>
+            <div class="chart-actions">
+              <button title="Toggle mood" onclick="toggleDataset('mood')">
+                Toggle
+              </button>
+            </div>
+          </div>
+          <canvas id="moodChart"></canvas>
+        </div>
+      </div>
+
+      <div class="charts-row">
+        <div class="chart-wrap">
+          <div class="chart-header">
+            <h4>Mood Distribution</h4>
+          </div>
+          <canvas id="moodDistChart"></canvas>
+        </div>
+
+        <div class="chart-wrap">
+          <div class="chart-header">
+            <h4>Macro Breakdown</h4>
+          </div>
+          <canvas id="macroChart"></canvas>
+        </div>
+      </div>
+
+      <div class="charts-row">
+        <div class="chart-wrap" style="grid-column: span 2">
+          <div class="chart-header">
+            <h4>Calories In vs Out</h4>
+            <div class="chart-actions">
+              <button
+                title="Toggle datasets"
+                onclick="toggleDataset('calorieBalance')"
+              >
+                Toggle
+              </button>
+            </div>
+          </div>
+          <canvas id="calorieBalanceChart"></canvas>
+        </div>
+      </div>
+
+      <div class="charts-row">
+        <div class="chart-wrap">
+          <div class="chart-header">
+            <h4>Habit Completion Trend</h4>
+          </div>
+          <canvas id="habitTrendChart"></canvas>
+        </div>
+
+        <div class="chart-wrap">
+          <div class="chart-header">
+            <h4>Mood vs Activity</h4>
+          </div>
+          <canvas id="scatterChart"></canvas>
+        </div>
+      </div>
+
+      <div style="margin-top: 0.5rem" class="chart-wrap" style="display: flex; align-items: center; gap: 1rem"
+        >
+        <div style="flex: 1">
+          <div class="chart-header">
+            <h4>Wellness Radar</h4>
+          </div>
+          <canvas id="radarChart"></canvas>
+        </div>
+
+        <div style="width: 200px; padding-left: 0.75rem">
+          <div style="font-size: 0.9rem; color: #64748b; margin-bottom: 0.4rem">
+            Legend
+          </div>
+          <div style="display: flex; flex-direction: column; gap: 0.5rem">
+            <div style="display: flex; gap: 0.6rem; align-items: center">
+              <span
+                style="
+                  width: 12px;
+                  height: 12px;
+                  background: #06b6d4;
+                  border-radius: 3px;
+                "
+              ></span>
+              Activities
+            </div>
+            <div style="display: flex; gap: 0.6rem; align-items: center">
+              <span
+                style="
+                  width: 12px;
+                  height: 12px;
+                  background: #7c3aed;
+                  border-radius: 3px;
+                "
+              ></span>
+              Calories
+            </div>
+            <div style="display: flex; gap: 0.6rem; align-items: center">
+              <span
+                style="
+                  width: 12px;
+                  height: 12px;
+                  background: #10b981;
+                  border-radius: 3px;
+                "
+              ></span>
+              Mood
+            </div>
+            <div style="display: flex; gap: 0.6rem; align-items: center">
+              <span
+                style="
+                  width: 12px;
+                  height: 12px;
+                  background: #f97316;
+                  border-radius: 3px;
+                "
+              ></span>
+              Habits
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- AI Panel -->
+  <div class="ai-panel">
+    <h3>AI-Powered Insights</h3>
+    <div class="ai-insight" id="aiInsight">{{ ai_insight }}</div>
+
+    <div class="ai-meta">
+      <div><strong>Activity-Mood Corr:</strong> {{ activity_corr }}</div>
+      <div><strong>Calories-Mood Corr:</strong> {{ calorie_corr }}</div>
+      <div>
+        <strong>Predicted Mood (example):</strong> {{ predicted_mood }}/10
+      </div>
+    </div>
+
+    <div style="margin-top: 0.6rem">
+      <div class="ai-actions">
+        <button class="btn-neon" id="copyInsight">Copy Insight</button>
+        <button class="btn-neon" id="focusRecommendation">
+          Use Recommendation
+        </button>
+      </div>
+    </div>
+
+    <hr
+      style="
+        border: none;
+        height: 1px;
+        background: rgba(255, 255, 255, 0.04);
+        margin: 0.8rem 0;
+      "
+    />
+
+    <div style="color: white; font-size: 0.9rem">
+      <div style="margin-bottom: 0.45rem"><strong>Quick tips</strong></div>
+      <ul
+        style="padding-left: 1rem; margin: 0; color: white; line-height: 1.4"
+      >
+        <li>Consistency matters more than intensity.</li>
+        <li>Hydration helps mood & energy - log water regularly.</li>
+        <li>Short walks on low-mood days often help.</li>
+      </ul>
+    </div>
+  </div>
+</div>
+
+<!-- Chart.js -->
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<!-- html2pdf for PDF export -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+
+<script>
+  document.addEventListener('DOMContentLoaded', function() {
+    // Expose data from server to JS
+    const analyticsData = {
+      labels: {{ day_labels|tojson }},
+      activities: {{ weekly_activities|tojson }},
+      calories: {{ weekly_calories|tojson }},
+      mood: {{ weekly_mood|tojson }},
+
+      // New chart data
+      moodLabels: {{ mood_labels|tojson }},
+      moodCounts: {{ mood_counts|tojson }},
+      macroLabels: {{ macro_labels|tojson }},
+      macroValues: {{ macro_values|tojson }},
+      caloriesIn: {{ calories_in|tojson }},
+      caloriesOut: {{ calories_out|tojson }},
+      habitTrend: {{ habit_completion_trend|tojson }},
+      scatterData: {{ scatter_data|tojson }},
+
+      totals: {
+        weekly_activities: {{ total_weekly_activities }},
+        total_calories_burned: {{ total_calories_burned }},
+        avg_mood: {{ avg_mood }},
+        habit_success: {{ habit_success }},
+        completed_today: {{ completed_today }},
+        today_water: {{ today_water }},
+        longest_streak: {{ longest_streak }}
+      },
+
+      ai: {
+        insight: `{{ ai_insight|escape }}`
+      }
+    };
+
+    // Common chart options
+    const commonOptions = {
+      plugins: {
+        legend: { display: false },
+        tooltip: { mode: 'index', intersect: false }
+      },
+      maintainAspectRatio: false,
+      responsive: true
+    };
+
+    // ACTIVITIES (line)
+    const activitiesEl = document.getElementById('activitiesChart');
+    if (activitiesEl) {
+      const activitiesCtx = activitiesEl.getContext('2d');
+      window.activitiesChart = new Chart(activitiesCtx, {
+        type: 'line',
+        data: {
+          labels: analyticsData.labels,
+          datasets: [{
+            label: 'Activities',
+            data: analyticsData.activities,
+            tension: 0.35,
+            borderWidth: 2,
+            borderColor: '#14b8a6',
+            pointBackgroundColor: '#fff',
+            pointRadius: 4,
+            fill: true,
+            backgroundColor: 'rgba(20, 184, 166, 0.12)'
+          }]
+        },
+        options: Object.assign({}, commonOptions, {
+          scales: {
+            y: { beginAtZero: true, ticks: { color: '#0f172a' } },
+            x: { ticks: { color: '#0f172a' } }
+          }
+        })
+      });
+    }
+
+    // CALORIES (bar)
+    const caloriesEl = document.getElementById('caloriesChart');
+    if (caloriesEl) {
+      const caloriesCtx = caloriesEl.getContext('2d');
+      window.caloriesChart = new Chart(caloriesCtx, {
+        type: 'bar',
+        data: {
+          labels: analyticsData.labels,
+          datasets: [{
+            label: 'Calories',
+            data: analyticsData.calories,
+            borderRadius: 6,
+            barPercentage: 0.6,
+            backgroundColor: '#0891b2'
+          }]
+        },
+        options: Object.assign({}, commonOptions, {
+          scales: {
+            y: { beginAtZero: true, ticks: { color: '#0f172a' } },
+            x: { ticks: { color: '#0f172a' } }
+          }
+        })
+      });
+    }
+
+    // MOOD (line)
+    const moodEl = document.getElementById('moodChart');
+    if (moodEl) {
+      const moodCtx = moodEl.getContext('2d');
+      window.moodChart = new Chart(moodCtx, {
+        type: 'line',
+        data: {
+          labels: analyticsData.labels,
+          datasets: [{
+            label: 'Mood',
+            data: analyticsData.mood,
+            tension: 0.4,
+            borderWidth: 2,
+            borderColor: '#10b981',
+            pointRadius: 4,
+            fill: true,
+            backgroundColor: 'rgba(16, 185, 129, 0.10)'
+          }]
+        },
+        options: Object.assign({}, commonOptions, {
+          scales: {
+            y: { beginAtZero: true, suggestedMax: 10, ticks: { color: '#0f172a' } },
+            x: { ticks: { color: '#0f172a' } }
+          }
+        })
+      });
+    }
+
+    // MOOD DISTRIBUTION PIE
+    const moodDistEl = document.getElementById('moodDistChart');
+    if (moodDistEl) {
+      const moodDistCtx = moodDistEl.getContext('2d');
+      const moodColors = ['#14b8a6', '#0891b2', '#6366f1', '#f97316', '#ef4444', '#8b5cf6'];
+      window.moodDistChart = new Chart(moodDistCtx, {
+        type: 'doughnut',
+        data: {
+          labels: analyticsData.moodLabels,
+          datasets: [{
+            data: analyticsData.moodCounts,
+            backgroundColor: moodColors.slice(0, analyticsData.moodLabels.length),
+            borderColor: '#fff',
+            borderWidth: 2
+          }]
+        },
+        options: Object.assign({}, commonOptions, {
+          plugins: {
+            legend: { display: true, position: 'bottom' }
+          }
+        })
+      });
+    }
+
+    // MACRO BREAKDOWN PIE
+    const macroEl = document.getElementById('macroChart');
+    if (macroEl) {
+      const macroCtx = macroEl.getContext('2d');
+      window.macroChart = new Chart(macroCtx, {
+        type: 'doughnut',
+        data: {
+          labels: analyticsData.macroLabels,
+          datasets: [{
+            data: analyticsData.macroValues,
+            backgroundColor: ['#ec4899', '#8b5cf6', '#f97316'],
+            borderColor: '#fff',
+            borderWidth: 2
+          }]
+        },
+        options: Object.assign({}, commonOptions, {
+          plugins: {
+            legend: { display: true, position: 'bottom' }
+          }
+        })
+      });
+    }
+
+    // CALORIES IN VS OUT
+    const calorieBalanceEl = document.getElementById('calorieBalanceChart');
+    if (calorieBalanceEl) {
+      const calorieBalanceCtx = calorieBalanceEl.getContext('2d');
+      window.calorieBalanceChart = new Chart(calorieBalanceCtx, {
+        type: 'bar',
+        data: {
+          labels: analyticsData.labels,
+          datasets: [
+            {
+              label: 'Calories In',
+              data: analyticsData.caloriesIn,
+              backgroundColor: '#f97316',
+              borderRadius: 6,
+              barPercentage: 0.7
+            },
+            {
+              label: 'Calories Out',
+              data: analyticsData.caloriesOut,
+              backgroundColor: '#14b8a6',
+              borderRadius: 6,
+              barPercentage: 0.7
+            }
+          ]
+        },
+        options: Object.assign({}, commonOptions, {
+          scales: {
+            y: { beginAtZero: true, ticks: { color: '#0f172a' } },
+            x: { ticks: { color: '#0f172a' } }
+          },
+          plugins: {
+            legend: { display: true, position: 'top' }
+          }
+        })
+      });
+    }
+
+    // HABIT COMPLETION TREND
+    const habitTrendEl = document.getElementById('habitTrendChart');
+    if (habitTrendEl) {
+      const habitTrendCtx = habitTrendEl.getContext('2d');
+      window.habitTrendChart = new Chart(habitTrendCtx, {
+        type: 'line',
+        data: {
+          labels: analyticsData.labels,
+          datasets: [{
+            label: 'Completion %',
+            data: analyticsData.habitTrend,
+            tension: 0.35,
+            borderWidth: 2,
+            borderColor: '#10b981',
+            pointBackgroundColor: '#fff',
+            pointRadius: 4,
+            fill: true,
+            backgroundColor: 'rgba(16, 185, 129, 0.12)'
+          }]
+        },
+        options: Object.assign({}, commonOptions, {
+          scales: {
+            y: { beginAtZero: true, suggestedMax: 100, ticks: { color: '#0f172a' } },
+            x: { ticks: { color: '#0f172a' } }
+          }
+        })
+      });
+    }
+
+    // SCATTER: MOOD VS ACTIVITY
+    const scatterEl = document.getElementById('scatterChart');
+    if (scatterEl) {
+      const scatterCtx = scatterEl.getContext('2d');
+      window.scatterChart = new Chart(scatterCtx, {
+        type: 'scatter',
+        data: {
+          datasets: [{
+            label: 'Activity-Mood',
+            data: analyticsData.scatterData,
+            backgroundColor: 'rgba(20, 184, 166, 0.6)',
+            borderColor: '#14b8a6',
+            borderWidth: 2,
+            pointRadius: 6
+          }]
+        },
+        options: Object.assign({}, commonOptions, {
+          scales: {
+            x: {
+              title: { display: true, text: 'Activities' },
+              ticks: { color: '#0f172a' }
+            },
+            y: {
+              title: { display: true, text: 'Mood Score' },
+              ticks: { color: '#0f172a' }
+            }
+          }
+        })
+      });
+    }
+
+    // RADAR (Wellness summary)
+    const radarEl = document.getElementById('radarChart');
+    if (radarEl) {
+      const radarCtx = radarEl.getContext('2d');
+      const avgActivities = analyticsData.activities.reduce((a,b)=>a+b,0) / (analyticsData.activities.length || 1);
+      const avgCalories = analyticsData.calories.reduce((a,b)=>a+b,0) / (analyticsData.calories.length || 1);
+
+      function normalize(x, max) { return Math.round((x / (max || 1)) * 10 * 10) / 10; }
+
+      window.radarChart = new Chart(radarCtx, {
+        type: 'radar',
+        data: {
+          labels: ['Activity', 'Calories', 'Mood', 'Habits'],
+          datasets: [{
+            label: 'Wellness',
+            data: [
+              normalize(avgActivities, Math.max(...analyticsData.activities, 1)),
+              normalize(avgCalories, Math.max(...analyticsData.calories, 1)),
+              analyticsData.totals.avg_mood,
+              normalize(analyticsData.totals.habit_success, 100)
+            ],
+            backgroundColor: 'rgba(20, 184, 166, 0.12)',
+            borderColor: '#14b8a6',
+            borderWidth: 2,
+            pointBackgroundColor: '#fff'
+          }]
+        },
+        options: Object.assign({}, commonOptions, {
+          scales: {
+            r: { beginAtZero: true, suggestedMax: 10, ticks: { color: '#0f172a' }, angleLines: { color: 'rgba(0,0,0,0.03)' } }
+          }
+        })
+      });
+    }
+  });
+
+  // Dataset toggles
+  function toggleDataset(which) {
+    if (which === 'activities' && window.activitiesChart) {
+      window.activitiesChart.data.datasets[0].hidden = !window.activitiesChart.data.datasets[0].hidden;
+      window.activitiesChart.update();
+    } else if (which === 'calories' && window.caloriesChart) {
+      window.caloriesChart.data.datasets[0].hidden = !window.caloriesChart.data.datasets[0].hidden;
+      window.caloriesChart.update();
+    } else if (which === 'mood' && window.moodChart) {
+      window.moodChart.data.datasets[0].hidden = !window.moodChart.data.datasets[0].hidden;
+      window.moodChart.update();
+    } else if (which === 'calorieBalance' && window.calorieBalanceChart) {
+      window.calorieBalanceChart.data.datasets.forEach(ds => {
+        ds.hidden = !ds.hidden;
+      });
+      window.calorieBalanceChart.update();
+    }
+  }
+
+  // Export functions
+  function downloadCanvasAsImage(canvas, filename) {
+    const link = document.createElement('a');
+    link.href = canvas.toDataURL('image/png', 1.0);
+    link.download = filename;
+    link.click();
+  }
+
+  function downloadAllCharts() {
+    const charts = [
+      { id: 'activitiesChart', name: 'activities.png' },
+      { id: 'caloriesChart', name: 'calories.png' },
+      { id: 'moodChart', name: 'mood.png' },
+      { id: 'moodDistChart', name: 'mood_distribution.png' },
+      { id: 'macroChart', name: 'macro_breakdown.png' },
+      { id: 'calorieBalanceChart', name: 'calorie_balance.png' },
+      { id: 'habitTrendChart', name: 'habit_trend.png' },
+      { id: 'scatterChart', name: 'mood_vs_activity.png' },
+      { id: 'radarChart', name: 'wellness_radar.png' }
+    ];
+
+    let delay = 0;
+    charts.forEach(chart => {
+      setTimeout(() => {
+        if (document.getElementById(chart.id) && window[chart.id]) {
+          const canvas = document.getElementById(chart.id);
+          downloadCanvasAsImage(canvas, chart.name);
+        }
+      }, delay);
+      delay += 300;
+    });
+  }
+
+  function exportPageAsPDF() {
+    // Create a clone of the analytics viewport for PDF export
+    const originalElement = document.querySelector('.analytics-viewport');
+    const element = originalElement.cloneNode(true);
+    
+    // Remove export buttons from header
+    const header = element.querySelector('.analytics-header');
+    const buttonContainer = header.querySelector('div[style*="display: flex"]');
+    if (buttonContainer) {
+      buttonContainer.style.display = 'none';
+    }
+
+    // Hide AI action buttons
+    const aiActions = element.querySelector('.ai-actions');
+    if (aiActions) {
+      aiActions.style.display = 'none';
+    }
+
+    // Hide legend next to radar chart
+    const legendDiv = element.querySelector('div[style*="width: 200px"]');
+    if (legendDiv) {
+      legendDiv.style.display = 'none';
+    }
+
+    // Convert all charts to images and update canvas elements in cloned element
+    const charts = [
+      'activitiesChart', 'caloriesChart', 'moodChart', 'moodDistChart',
+      'macroChart', 'calorieBalanceChart', 'habitTrendChart', 'scatterChart', 'radarChart'
+    ];
+
+    charts.forEach(chartId => {
+      const originalCanvas = document.getElementById(chartId);
+      const clonedCanvas = element.querySelector(`#${chartId}`);
+      
+      if (originalCanvas && window[chartId] && clonedCanvas) {
+        // Get the chart image from the original canvas
+        const chartImage = window[chartId].toBase64Image();
+        
+        // Update the cloned canvas
+        const ctx = clonedCanvas.getContext('2d');
+        const img = new Image();
+        img.onload = function() {
+          clonedCanvas.width = originalCanvas.width;
+          clonedCanvas.height = originalCanvas.height;
+          ctx.drawImage(img, 0, 0);
+        };
+        img.src = chartImage;
+      }
+    });
+
+    const today = new Date().toISOString().split('T')[0];
+    const filename = `Analytics_Report_${today}.pdf`;
+
+    const opt = {
+      margin: [10, 10, 10, 10],
+      filename: filename,
+      image: { type: 'jpeg', quality: 0.98 },
+      html2canvas: { scale: 2, useCORS: true, allowTaint: true, backgroundColor: '#ffffff' },
+      jsPDF: { orientation: 'portrait', unit: 'mm', format: 'a4' },
+      pagebreak: { mode: 'avoid-all' }
+    };
+
+    // Wait for images to load in cloned element
+    setTimeout(() => {
+      html2pdf().set(opt).from(element).save();
+    }, 1000);
+  }
+
+  // AI actions
+  document.addEventListener('DOMContentLoaded', function() {
+    const copyBtn = document.getElementById('copyInsight');
+    if (copyBtn) {
+      copyBtn.addEventListener('click', async () => {
+        const text = document.getElementById('aiInsight') ? document.getElementById('aiInsight').innerText : '';
+        if (!text) return alert('No insight to copy');
+        try {
+          await navigator.clipboard.writeText(text);
+          alert('Insight copied to clipboard');
+        } catch (e) {
+          alert('Copy failed — select & copy manually.');
+        }
+      });
+    }
+
+    const focusBtn = document.getElementById('focusRecommendation');
+    if (focusBtn) {
+      focusBtn.addEventListener('click', () => {
+        const moodChart = document.getElementById('moodChart');
+        if (moodChart) moodChart.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      });
+    }
+  });
+</script>
+
+{% endblock %}

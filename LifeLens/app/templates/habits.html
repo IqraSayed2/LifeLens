@@ -1,1 +1,179 @@
-<h1>habits</h1>
+{% extends "base.html" %} 
+{% block title %}Habits Tracker{% endblock %} 
+{% block content %}
+
+<div class="habitstrack-page-header">
+  <div class="habitstrack-page-title">
+    <h2>Habits Tracker</h2>
+    <p>Build and track your daily habits</p>
+  </div>
+  <button class="habitstrack-new-btn" onclick="openHabitsModal()">
+    <i class="fas fa-plus"></i> New Habit
+  </button>
+</div>
+
+<!-- Today's Habits Section -->
+<div class="habitstrack-section">
+  <div class="habitstrack-section-header">
+    <div class="habitstrack-section-icon"><i class="fas fa-bullseye"></i></div>
+    <h3 class="habitstrack-section-title">Today's Habits</h3>
+  </div>
+
+  {% if habits %} 
+  {% for h in habits %} 
+  {% set log = todays_logs.get(h.id) if todays_logs is defined else None %}
+  <div
+    class="habitstrack-habit-item {{ 'completed' if log and log.is_completed else 'uncompleted' }}"
+    data-habit-id="{{ h.id }}"
+  >
+    <div class="habitstrack-checkbox" onclick="toggleHabit(event, {{ h.id }})">
+      <i
+        class="fas fa-check"
+        style="display: {{ 'block' if log and log.is_completed else 'none' }};"
+      ></i>
+    </div>
+
+    <div class="habitstrack-habit-info">
+      <h4 class="habitstrack-habit-name">{{ h.name }}</h4>
+      {% if h.description %}
+      <p class="habitstrack-habit-description">{{ h.description }}</p>
+      {% endif %}
+      <div class="habitstrack-habit-meta">
+        <span>{{ h.frequency|capitalize }}</span>
+        <span>Target: {{ h.target_count }}x</span>
+        <span class="habit-streak-display" data-habit-id="{{ h.id }}"
+          >Streak: {{ streaks[h.id] if streaks is defined and h.id in streaks
+          else 0 }}d</span
+        >
+      </div>
+    </div>
+  </div>
+  {% endfor %} 
+  {% else %}
+  <p class="text-muted">No habits yet. Create your first habit!</p>
+  {% endif %}
+</div>
+
+<!-- Streak & Progress Section -->
+<div class="habitstrack-section">
+  <h3 class="habitstrack-section-title" style="margin-bottom: 1.5rem">
+    Streak & Progress
+  </h3>
+
+  <div class="habitstrack-stats-grid">
+    <div class="habitstrack-stat-card habitstrack-stat-card-green">
+      <div class="habitstrack-stat-label">Completed Today</div>
+      <div
+        id="completedToday"
+        class="habitstrack-stat-value habitstrack-stat-value-green"
+      >
+        {{ completed_today }}
+      </div>
+    </div>
+    <div class="habitstrack-stat-card habitstrack-stat-card-blue">
+      <div class="habitstrack-stat-label">Total Habits</div>
+      <div
+        id="totalHabits"
+        class="habitstrack-stat-value habitstrack-stat-value-blue"
+      >
+        {{ total_habits }}
+      </div>
+    </div>
+    <div class="habitstrack-stat-card habitstrack-stat-card-orange">
+      <div class="habitstrack-stat-label">Completion Rate</div>
+      <div
+        id="completionRate"
+        class="habitstrack-stat-value habitstrack-stat-value-orange"
+      >
+        {{ completion_rate }}%
+      </div>
+    </div>
+    <div class="habitstrack-stat-card habitstrack-stat-card-pink">
+      <div class="habitstrack-stat-label">Current Streak</div>
+      <div
+        id="maxStreakDisplay"
+        class="habitstrack-stat-value habitstrack-stat-value-pink"
+      >
+        {% set max_streak = 0 %} 
+        {% for s in streaks.values() %} 
+        {% if s > max_streak %} 
+        {% set max_streak = s %} 
+        {% endif %} 
+        {% endfor %} 
+        {{ max_streak }} days
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Modal -->
+<div
+  class="habitstrack-modal-overlay"
+  id="habitsModal"
+  onclick="closeModalOnOverlay(event)"
+>
+  <div class="habitstrack-modal">
+    <div class="habitstrack-modal-header">
+      <h3 class="habitstrack-modal-title">Create New Habit</h3>
+      <button class="habitstrack-modal-close" onclick="closeHabitsModal()">
+        <i class="fas fa-times"></i>
+      </button>
+    </div>
+    <div class="habitstrack-modal-body">
+      <form
+        id="createHabitForm"
+        method="POST"
+        action="{{ url_for('main.add_habit') }}"
+      >
+        <div class="habitstrack-form-group">
+          <label class="habitstrack-form-label">Habit Name</label>
+          <input
+            type="text"
+            name="name"
+            class="habitstrack-form-input"
+            placeholder="e.g., Morning Meditation"
+            required
+          />
+        </div>
+
+        <div class="habitstrack-form-group">
+          <label class="habitstrack-form-label">Description</label>
+          <textarea
+            name="description"
+            class="habitstrack-form-textarea"
+            placeholder="What does this habit involve?"
+          ></textarea>
+        </div>
+
+        <div class="habitstrack-form-row">
+          <div class="habitstrack-form-group">
+            <label class="habitstrack-form-label">Frequency</label>
+            <select name="frequency" class="habitstrack-form-select" required>
+              <option value="daily" selected>Daily</option>
+              <option value="weekly">Weekly</option>
+              <option value="monthly">Monthly</option>
+            </select>
+          </div>
+
+          <div class="habitstrack-form-group">
+            <label class="habitstrack-form-label">Target Count</label>
+            <input
+              type="number"
+              name="target_count"
+              class="habitstrack-form-input"
+              value="1"
+              min="1"
+              required
+            />
+          </div>
+        </div>
+
+        <button type="submit" class="habitstrack-form-submit">
+          <i class="fas fa-plus-circle"></i> Create Habit
+        </button>
+      </form>
+    </div>
+  </div>
+</div>
+
+{% endblock %}

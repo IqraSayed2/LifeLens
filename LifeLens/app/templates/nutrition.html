@@ -1,1 +1,186 @@
-<h1>nutrition</h1>
+{% extends "base.html" %} 
+{% block title %}Nutrition Tracker{% endblock %} 
+{% block content %}
+
+<main class="nutrition-main-content">
+  <div class="nutrition-page-header">
+    <div class="nutrition-page-title">
+      <h2>Nutrition Tracker</h2>
+      <p>Monitor your meals and nutritional intake</p>
+    </div>
+    <button class="nutrition-log-btn" onclick="openNutritionModal()">
+      <i class="fas fa-plus"></i> Log Meal
+    </button>
+  </div>
+
+  {% for meal in meals %}
+  <div class="nutrition-card">
+    <div class="nutrition-card-header">
+      <div class="nutrition-meal-info">
+        <div class="nutrition-meal-icon">
+          {% if meal.meal_type == 'breakfast' %}<i class="fas fa-coffee"></i> {%
+          elif meal.meal_type == 'lunch' %}<i class="fas fa-utensils"></i> {%
+          elif meal.meal_type == 'dinner' %}<i class="fas fa-moon"></i> {% else
+          %}<i class="fas fa-cookie"></i>
+          {% endif %}
+        </div>
+
+        <div class="nutrition-meal-title">
+          <h3>{{ meal.meal_type }}</h3>
+          <p>{{ meal.date.strftime("%d/%m/%Y") }}</p>
+        </div>
+      </div>
+
+      <div class="nutrition-calories-badge">
+        <div class="nutrition-calories-number">{{ meal.calories }}</div>
+        <div class="nutrition-calories-label">calories</div>
+      </div>
+    </div>
+
+    <div class="nutrition-food-items">
+      <div class="nutrition-food-label">Food Items:</div>
+      <div class="nutrition-food-list">{{ meal.food_items }}</div>
+    </div>
+
+    <div class="nutrition-macros-grid">
+      <div class="nutrition-macro-item">
+        <div class="nutrition-macro-label">Protein</div>
+        <div class="nutrition-macro-value">{{ meal.protein }}g</div>
+      </div>
+
+      <div class="nutrition-macro-item">
+        <div class="nutrition-macro-label">Carbs</div>
+        <div class="nutrition-macro-value">{{ meal.carbs }}g</div>
+      </div>
+
+      <div class="nutrition-macro-item">
+        <div class="nutrition-macro-label">Fat</div>
+        <div class="nutrition-macro-value">{{ meal.fat }}g</div>
+      </div>
+
+      <div class="nutrition-macro-item">
+        <div class="nutrition-macro-label"><i class="fas fa-tint"></i></div>
+        <div class="nutrition-macro-value">{{ meal.water }}ml</div>
+      </div>
+    </div>
+
+    {% if meal.notes %}
+    <div class="nutrition-notes-section">{{ meal.notes }}</div>
+    {% endif %}
+  </div>
+  {% else %}
+  <p class="text-muted">No meals logged yet. Start by adding a meal!</p>
+  {% endfor %}
+</main>
+
+<!-- Modal -->
+<div
+  class="nutrition-modal-overlay"
+  id="nutritionModal"
+  onclick="closeModalOnOverlay(event)"
+>
+  <div class="nutrition-modal">
+    <div class="nutrition-modal-header">
+      <h3 class="nutrition-modal-title">Log Meal</h3>
+      <button class="nutrition-modal-close" onclick="closeNutritionModal()">
+        <i class="fas fa-times"></i>
+      </button>
+    </div>
+
+    <div class="nutrition-modal-body">
+      <form method="POST" action="{{ url_for('main.nutrition') }}">
+        <div class="nutrition-form-group">
+          <label class="nutrition-form-label">Meal Type</label>
+          <select name="meal_type" class="nutrition-form-select" required>
+            <option value="breakfast">Breakfast</option>
+            <option value="lunch">Lunch</option>
+            <option value="dinner">Dinner</option>
+            <option value="snack">Snack</option>
+          </select>
+        </div>
+
+        <div class="nutrition-form-group">
+          <label class="nutrition-form-label">Food Items</label>
+          <textarea
+            name="food_items"
+            class="nutrition-form-textarea"
+            required
+          ></textarea>
+        </div>
+
+        <div class="nutrition-form-row">
+          <div class="nutrition-form-group">
+            <label class="nutrition-form-label">Calories</label>
+            <input
+              type="number"
+              name="calories"
+              class="nutrition-form-input"
+              required
+            />
+          </div>
+          <div class="nutrition-form-group">
+            <label class="nutrition-form-label">Protein (g)</label>
+            <input
+              type="number"
+              name="protein"
+              class="nutrition-form-input"
+              required
+            />
+          </div>
+        </div>
+
+        <div class="nutrition-form-row">
+          <div class="nutrition-form-group">
+            <label class="nutrition-form-label">Carbs (g)</label>
+            <input
+              type="number"
+              name="carbs"
+              class="nutrition-form-input"
+              required
+            />
+          </div>
+          <div class="nutrition-form-group">
+            <label class="nutrition-form-label">Fat (g)</label>
+            <input
+              type="number"
+              name="fat"
+              class="nutrition-form-input"
+              required
+            />
+          </div>
+        </div>
+
+        <div class="nutrition-form-group">
+          <label class="nutrition-form-label">Water (ml)</label>
+          <input
+            type="number"
+            name="water"
+            class="nutrition-form-input"
+            required
+          />
+        </div>
+
+        <div class="nutrition-form-group">
+          <label class="nutrition-form-label">Date</label>
+          <input
+            type="date"
+            name="date"
+            class="nutrition-form-input"
+            required
+          />
+        </div>
+
+        <div class="nutrition-form-group">
+          <label class="nutrition-form-label">Notes</label>
+          <textarea name="notes" class="nutrition-form-textarea"></textarea>
+        </div>
+
+        <button type="submit" class="nutrition-form-submit">
+          <i class="fas fa-save"></i> Save Meal
+        </button>
+      </form>
+    </div>
+  </div>
+</div>
+
+{% endblock %}
