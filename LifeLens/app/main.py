@@ -649,6 +649,77 @@ def apply_recommendation():
         return jsonify({"error": str(e)}), 500
 
 
+@main_bp.route("/delete_activity/<int:activity_id>", methods=['DELETE'])
+@login_required
+def delete_activity(activity_id):
+    """Delete an activity by ID"""
+    try:
+        activity = Activity.query.filter_by(id=activity_id, user_id=current_user.id).first()
+        if not activity:
+            return jsonify({"error": "Activity not found"}), 404
+        
+        db.session.delete(activity)
+        db.session.commit()
+        return jsonify({"success": True, "message": "Activity deleted"}), 200
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({"error": str(e)}), 500
+
+
+@main_bp.route("/delete_mood/<int:mood_id>", methods=['DELETE'])
+@login_required
+def delete_mood(mood_id):
+    """Delete a mood entry by ID"""
+    try:
+        mood = Mood.query.filter_by(id=mood_id, user_id=current_user.id).first()
+        if not mood:
+            return jsonify({"error": "Mood entry not found"}), 404
+        
+        db.session.delete(mood)
+        db.session.commit()
+        return jsonify({"success": True, "message": "Mood entry deleted"}), 200
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({"error": str(e)}), 500
+
+
+@main_bp.route("/delete_nutrition/<int:meal_id>", methods=['DELETE'])
+@login_required
+def delete_nutrition(meal_id):
+    """Delete a nutrition entry by ID"""
+    try:
+        nutrition = Nutrition.query.filter_by(id=meal_id, user_id=current_user.id).first()
+        if not nutrition:
+            return jsonify({"error": "Nutrition entry not found"}), 404
+        
+        db.session.delete(nutrition)
+        db.session.commit()
+        return jsonify({"success": True, "message": "Nutrition entry deleted"}), 200
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({"error": str(e)}), 500
+
+
+@main_bp.route("/delete_habit/<int:habit_id>", methods=['DELETE'])
+@login_required
+def delete_habit(habit_id):
+    """Delete a habit and all its logs by ID"""
+    try:
+        habit = Habit.query.filter_by(id=habit_id, user_id=current_user.id).first()
+        if not habit:
+            return jsonify({"error": "Habit not found"}), 404
+        
+        # Delete all habit logs first
+        HabitLog.query.filter_by(habit_id=habit_id).delete()
+        # Then delete the habit
+        db.session.delete(habit)
+        db.session.commit()
+        return jsonify({"success": True, "message": "Habit deleted"}), 200
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({"error": str(e)}), 500
+
+
 @main_bp.route("/recommendation")
 @login_required
 def recommendation():
@@ -687,7 +758,7 @@ def recommendation():
     weekly_data = {
         "activities": weekly_activities,
         "mood": weekly_mood,
-        "calories": weekly_calories,
+        "calories": weekly_calories, 
         "water_today": today_water,
         "habit_success": habit_success
     }

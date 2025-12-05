@@ -22,7 +22,12 @@
                 <h3>{{ act.title }}</h3>
                 <p>{{ act.category }}</p>
             </div>
-            <span class="activity-intensity-badge activity-badge-{{ act.intensity }}">{{ act.intensity }}</span>
+            <div style="display: flex; gap: 0.5rem; align-items: center;">
+                <span class="activity-intensity-badge activity-badge-{{ act.intensity }}">{{ act.intensity }}</span>
+                <button class="activity-delete-btn" onclick="deleteActivity({{ act.id }})" title="Delete activity">
+                    <i class="fas fa-trash-alt"></i>
+                </button>
+            </div>
         </div>
 
         <div style="display: flex; justify-content: space-between; align-items: end;">
@@ -113,5 +118,6 @@
         </div>
     </div>
 </div>
+
 {% endblock %}
 

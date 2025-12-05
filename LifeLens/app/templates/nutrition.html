@@ -31,9 +31,14 @@
         </div>
       </div>
 
-      <div class="nutrition-calories-badge">
-        <div class="nutrition-calories-number">{{ meal.calories }}</div>
-        <div class="nutrition-calories-label">calories</div>
+      <div style="display: flex; gap: 0.75rem; align-items: center;">
+        <div class="nutrition-calories-badge">
+          <div class="nutrition-calories-number">{{ meal.calories }}</div>
+          <div class="nutrition-calories-label">calories</div>
+        </div>
+        <button class="nutrition-delete-btn" onclick="deleteNutrition({{ meal.id }})" title="Delete nutrition">
+          <i class="fas fa-trash-alt"></i>
+        </button>
       </div>
     </div>
 

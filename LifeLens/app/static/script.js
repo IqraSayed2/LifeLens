@@ -34,6 +34,68 @@ function closeModalOnOverlay(event) {
   }
 }
 
+function deleteActivity(activityId) {
+  if (
+    confirm(
+      "Are you sure you want to delete this activity? This action cannot be undone."
+    )
+  ) {
+    fetch(`/delete_activity/${activityId}`, {
+      method: "DELETE",
+      headers: {
+        "Content-Type": "application/json",
+      },
+    })
+      .then((response) => {
+        if (response.ok) {
+          const cards = document.querySelectorAll(".activity-card");
+          for (let card of cards) {
+            const deleteBtn = card.querySelector(".activity-delete-btn");
+            if (
+              deleteBtn &&
+              deleteBtn.getAttribute("onclick").includes(activityId)
+            ) {
+              card.style.animation = "fadeOut 0.3s ease";
+              setTimeout(() => card.remove(), 300);
+              break;
+            }
+          }
+          showNotification("Activity deleted successfully", "success");
+        } else {
+          showNotification("Failed to delete activity", "error");
+        }
+      })
+      .catch((error) => {
+        console.error("Error:", error);
+        showNotification("Error deleting activity", "error");
+      });
+  }
+}
+
+function showNotification(message, type = "success") {
+  const notification = document.createElement("div");
+  notification.style.cssText = `
+        position: fixed;
+        top: 20px;
+        right: 20px;
+        padding: 1rem 1.5rem;
+        border-radius: 8px;
+        font-weight: 600;
+        z-index: 10000;
+        animation: slideIn 0.3s ease;
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+        background: ${type === "success" ? "#10b981" : "#ef4444"};
+        color: white;
+    `;
+  notification.textContent = message;
+  document.body.appendChild(notification);
+
+  setTimeout(() => {
+    notification.style.animation = "slideOut 0.3s ease";
+    setTimeout(() => notification.remove(), 300);
+  }, 3000);
+}
+
 // ======================================= MOOD ===========================================
 
 function openMoodModal() {
@@ -58,6 +120,56 @@ function updateSliderValue(type, value) {
   document.getElementById(type + "Value").textContent = value + "/10";
 }
 
+function deleteMood(moodId) {
+  if (confirm("Are you sure? This action cannot be undone.")) {
+    fetch(`/delete_mood/${moodId}`, { method: "DELETE" })
+      .then((response) => {
+        if (response.ok) {
+          const cards = document.querySelectorAll(".mood-card");
+          for (let card of cards) {
+            const deleteBtn = card.querySelector(".mood-delete-btn");
+            if (
+              deleteBtn &&
+              deleteBtn.getAttribute("onclick").includes(moodId)
+            ) {
+              card.style.animation = "fadeOut 0.3s ease";
+              setTimeout(() => card.remove(), 300);
+              break;
+            }
+          }
+          showNotification("Mood entry deleted successfully", "success");
+        } else {
+          showNotification("Failed to delete mood entry", "error");
+        }
+      })
+      .catch((error) => showNotification("Error deleting mood entry", "error"));
+  }
+}
+
+function showNotification(message, type) {
+  const notification = document.createElement("div");
+  notification.className = "notification";
+  notification.style.position = "fixed";
+  notification.style.top = "20px";
+  notification.style.right = "20px";
+  notification.style.padding = "12px 20px";
+  notification.style.borderRadius = "6px";
+  notification.style.color = "white";
+  notification.style.fontSize = "14px";
+  notification.style.zIndex = "9999";
+  notification.style.animation = "slideIn 0.3s ease";
+  notification.style.backgroundColor =
+    type === "success" ? "#10b981" : "#ef4444";
+  notification.textContent = message;
+
+  document.body.appendChild(notification);
+
+  setTimeout(() => {
+    notification.style.animation = "slideOut 0.3s ease";
+    setTimeout(() => notification.remove(), 300);
+  }, 3000);
+}
+
 // ====================================== NUTRITION ===============================================
 
 function openNutritionModal() {
@@ -68,6 +180,58 @@ function closeNutritionModal() {
 }
 function closeModalOnOverlay(e) {
   if (e.target === e.currentTarget) closeNutritionModal();
+}
+
+function deleteNutrition(mealId) {
+  if (confirm("Are you sure? This action cannot be undone.")) {
+    fetch(`/delete_nutrition/${mealId}`, { method: "DELETE" })
+      .then((response) => {
+        if (response.ok) {
+          const cards = document.querySelectorAll(".nutrition-card");
+          for (let card of cards) {
+            const deleteBtn = card.querySelector(".nutrition-delete-btn");
+            if (
+              deleteBtn &&
+              deleteBtn.getAttribute("onclick").includes(mealId)
+            ) {
+              card.style.animation = "fadeOut 0.3s ease";
+              setTimeout(() => card.remove(), 300);
+              break;
+            }
+          }
+          showNotification("Nutrition entry deleted successfully", "success");
+        } else {
+          showNotification("Failed to delete nutrition entry", "error");
+        }
+      })
+      .catch((error) =>
+        showNotification("Error deleting nutrition entry", "error")
+      );
+  }
+}
+
+function showNotification(message, type) {
+  const notification = document.createElement("div");
+  notification.className = "notification";
+  notification.style.position = "fixed";
+  notification.style.top = "20px";
+  notification.style.right = "20px";
+  notification.style.padding = "12px 20px";
+  notification.style.borderRadius = "6px";
+  notification.style.color = "white";
+  notification.style.fontSize = "14px";
+  notification.style.zIndex = "9999";
+  notification.style.animation = "slideIn 0.3s ease";
+  notification.style.backgroundColor =
+    type === "success" ? "#10b981" : "#ef4444";
+  notification.textContent = message;
+
+  document.body.appendChild(notification);
+
+  setTimeout(() => {
+    notification.style.animation = "slideOut 0.3s ease";
+    setTimeout(() => notification.remove(), 300);
+  }, 3000);
 }
 
 // ====================================== HABITS ===============================================
@@ -150,6 +314,49 @@ async function toggleHabit(event, habitId) {
     console.error(err);
     alert("Network error toggling habit");
   }
+}
+
+function deleteHabit(habitId) {
+  if (confirm("Are you sure? This action cannot be undone.")) {
+    fetch(`/delete_habit/${habitId}`, { method: "DELETE" })
+      .then((response) => {
+        if (response.ok) {
+          const habitItem = document
+            .querySelector(`[data-habit-id="${habitId}"]`)
+            .closest(".habitstrack-habit-item");
+          habitItem.style.animation = "fadeOut 0.3s ease";
+          setTimeout(() => habitItem.remove(), 300);
+          showNotification("Habit deleted successfully", "success");
+        } else {
+          showNotification("Failed to delete habit", "error");
+        }
+      })
+      .catch((error) => showNotification("Error deleting habit", "error"));
+  }
+}
+
+function showNotification(message, type) {
+  const notification = document.createElement("div");
+  notification.className = "notification";
+  notification.style.position = "fixed";
+  notification.style.top = "20px";
+  notification.style.right = "20px";
+  notification.style.padding = "12px 20px";
+  notification.style.borderRadius = "6px";
+  notification.style.color = "white";
+  notification.style.fontSize = "14px";
+  notification.style.zIndex = "9999";
+  notification.style.animation = "slideIn 0.3s ease";
+  notification.style.backgroundColor =
+    type === "success" ? "#10b981" : "#ef4444";
+  notification.textContent = message;
+
+  document.body.appendChild(notification);
+
+  setTimeout(() => {
+    notification.style.animation = "slideOut 0.3s ease";
+    setTimeout(() => notification.remove(), 300);
+  }, 3000);
 }
 
 // ============================== ANALYTICS ====================================================

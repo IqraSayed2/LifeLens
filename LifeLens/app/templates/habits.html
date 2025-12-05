@@ -47,6 +47,10 @@
         >
       </div>
     </div>
+    
+    <button class="habitstrack-delete-btn" onclick="deleteHabit({{ h.id }})" title="Delete habit">
+      <i class="fas fa-trash-alt"></i>
+    </button>
   </div>
   {% endfor %} 
   {% else %}
