@@ -1,10 +1,333 @@
-{% extends "base.html" %}
-{% block title %}Dashboard{% endblock %}
-
+{% extends "base.html" %} 
+{% block title %}Dashboard{% endblock %} 
 {% block content %}
-<div class="lifelens-welcome">
-    <h2>Welcome back, {{ user.name or user.username }}!</h2>
-    <p>Here's your wellness overview for this week</p>
+
+<div class="dashboard-viewport">
+  <div class="dashboard-header">
+    <div>
+      <h2>
+        👋 Good day, {{ current_user.name or current_user.username or 'there' }}
+      </h2>
+      <p class="dashboard-sub">Here's your quick wellness snapshot for today</p>
+    </div>
+    <div>
+      <a
+        href="{{ url_for('main.analytics') }}"
+        class="dashboard-action-btn primary"
+      >
+        <i class="fas fa-chart-bar"></i> View Analytics
+      </a>
+    </div>
+  </div>
+
+  <!-- Stat Cards -->
+  <div class="dashboard-card-grid">
+    <!-- Mood Today -->
+    <div class="dashboard-stat-card">
+      <div class="dashboard-stat-top">
+        <div>
+          <span class="dashboard-stat-label">Mood Today</span>
+          <div class="dashboard-stat-value">
+            {% if latest_mood %} 
+            {% set mood_today = latest_mood.mood_score %}
+            {% if mood_today >= 8 %}😀 
+            {% elif mood_today >= 6 %}🙂 
+            {% elif mood_today >= 4 %}😐 
+            {% elif mood_today >= 2 %}😕 
+            {% else %}😔 
+            {% endif %} 
+            {{ mood_today }}/10 {% else %} —/10 {% endif %}
+          </div>
+        </div>
+        <div class="dashboard-stat-right">
+          <span class="small-muted">Last entry</span>
+          <div>
+            {{ (latest_mood.date.strftime('%d %b') if latest_mood else '—') }}
+          </div>
+        </div>
+      </div>
+      <div class="dashboard-energy-stress-bars">
+        <div class="dashboard-bar-item">
+          <label class="dashboard-bar-label">Energy</label>
+          <div class="dashboard-progress-small">
+            <div
+              class="progress-fill"
+              style="width:{{ (latest_mood.energy_score * 10 if latest_mood else 60) }}%"
+            ></div>
+          </div>
+        </div>
+        <div class="dashboard-bar-item">
+          <label class="dashboard-bar-label">Stress</label>
+          <div class="dashboard-progress-small">
+            <div
+              class="progress-fill"
+              style="width:{{ ((10 - (latest_mood.stress_score if latest_mood else 5)) * 10) }}%"
+            ></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Water Today -->
+    <div class="dashboard-stat-card">
+      <div class="dashboard-stat-top">
+        <div>
+          <span class="dashboard-stat-label">Water Intake</span>
+          <div class="dashboard-stat-value">
+            {{ today_water|default(0) }} ml
+          </div>
+        </div>
+        <div class="dashboard-stat-right">
+          <span class="small-muted">Goal</span>
+          <div>2000 ml</div>
+        </div>
+      </div>
+      <div>
+        <label class="dashboard-bar-label">Progress</label>
+        {% set pct = ((today_water / 2000) * 100) if today_water else 0 %}
+        <div class="dashboard-progress-small">
+          <div
+            class="progress-fill"
+            style="width:{{ pct if pct <= 100 else 100 }}%"
+          ></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Habits Completed -->
+    <div class="dashboard-stat-card">
+      <div class="dashboard-stat-top">
+        <div>
+          <span class="dashboard-stat-label">Habits</span>
+          <div class="dashboard-stat-value">
+            {{ completed_today }}/{{ total_habits }}
+          </div>
+        </div>
+        <div class="dashboard-stat-right">
+          <span class="small-muted">Rate</span>
+          <div>{{ completion_rate }}%</div>
+        </div>
+      </div>
+      <div class="dashboard-shortcuts">
+        <div
+          class="dashboard-shortcard"
+          onclick="location.href='{{ url_for('main.habits') }}'"
+        >
+          <i class="fas fa-check-circle" style="color: #14b8a6"></i>
+          <div>Open</div>
+        </div>
+        <div
+          class="dashboard-shortcard"
+          onclick="location.href='{{ url_for('main.habits') }}'"
+        >
+          <i class="fas fa-fire" style="color: #f97316"></i>
+          <div>Streak</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Calories Today -->
+    <div class="dashboard-stat-card">
+      <div class="dashboard-stat-top">
+        <div>
+          <span class="dashboard-stat-label">Calories</span>
+          <div class="dashboard-stat-value">
+            {% if calories_today %}{{ calories_today }}{% else %}{{ today_calories_burned }}{% endif %} kcal
+          </div>
+        </div>
+        <div class="dashboard-stat-right">
+          <span class="small-muted">Net</span>
+          <div>
+            {{ calories_today - today_calories_burned if calories_today else '—' }}
+          </div>
+        </div>
+      </div>
+      <p class="small-muted">
+        <i class="fas fa-dumbbell"></i> {{ today_activity_count }} sessions
+      </p>
+    </div>
+  </div>
+
+  <!-- Actions -->
+  <div class="dashboard-actions-row">
+    <button
+      class="dashboard-action-btn primary"
+      onclick="location.href='{{ url_for('main.activity') }}'"
+    >
+      <i class="fas fa-plus"></i> Add Activity
+    </button>
+    <button
+      class="dashboard-action-btn"
+      onclick="location.href='{{ url_for('main.mood') }}'"
+    >
+      <i class="fas fa-smile"></i> Log Mood
+    </button>
+    <button
+      class="dashboard-action-btn"
+      onclick="location.href='{{ url_for('main.nutrition') }}'"
+    >
+      <i class="fas fa-utensils"></i> Log Meal
+    </button>
+    <button
+      class="dashboard-action-btn"
+      onclick="location.href='{{ url_for('main.habits') }}'"
+    >
+      <i class="fas fa-bullseye"></i> Add Habit
+    </button>
+  </div>
+
+  <!-- Mini Charts -->
+  <div class="dashboard-mini-row">
+    <div
+      class="dashboard-mini-card"
+      onclick="location.href='{{ url_for('main.analytics') }}'"
+    >
+      <div class="dashboard-mini-header">
+        <h5>📊 Weekly Mood</h5>
+        <span class="dashboard-mini-sub">Last 7 days</span>
+      </div>
+      <canvas id="sparklineMood" height="80"></canvas>
+    </div>
+
+    <div
+      class="dashboard-mini-card"
+      onclick="location.href='{{ url_for('main.analytics') }}'"
+    >
+      <div class="dashboard-mini-header">
+        <h5>🏃 Weekly Activity</h5>
+        <span class="dashboard-mini-sub">Sessions</span>
+      </div>
+      <canvas id="sparklineActivity" height="80"></canvas>
+    </div>
+  </div>
+
+  <!-- AI Insight -->
+  <div class="dashboard-ai-panel">
+    <div>
+      <div>
+        <p class="dashboard-ai-line" id="aiLine">{{ ai_one_liner }}</p>
+        <div class="dashboard-ai-meta">
+          💡 Quick tip -
+          <a href="{{ url_for('main.recommendation') }}"
+            >Open full AI insights</a
+          >
+        </div>
+      </div>
+      <button
+        class="dashboard-action-btn"
+        id="copyAiBtn"
+        style="white-space: nowrap"
+      >
+        <i class="fas fa-copy"></i> Copy
+      </button>
+    </div>
+  </div>
+
+  <!-- Footer Stats -->
+  <div class="dashboard-footer-stats">
+    <div class="dashboard-footer-stat">
+      <i class="fas fa-droplet" style="color: #0891b2"></i>
+      <div>
+        <h4 class="dashboard-footer-stat-info">This Week Water</h4>
+        <p class="footer-dashboard-stat-value">{{ week_water_total }} ml</p>
+      </div>
+    </div>
+
+    <div class="dashboard-footer-stat">
+      <i class="fas fa-walking" style="color: #14b8a6"></i>
+      <div>
+        <h4 class="dashboard-footer-stat-info">This Week Activities</h4>
+        <p class="footer-dashboard-stat-value">{{ total_weekly_activities }}</p>
+      </div>
+    </div>
+
+    <div class="dashboard-footer-stat">
+      <i class="fas fa-heart" style="color: #ef4444"></i>
+      <div>
+        <h4 class="dashboard-footer-stat-info">Average Mood</h4>
+        <p class="footer-dashboard-stat-value">{{ avg_mood }}/10</p>
+      </div>
+    </div>
+  </div>
 </div>
 
+<!-- Chart.js CDN (for sparklines) -->
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+
+<script>
+  // Data from server (safe defaults)
+  const dashData = {
+    labels: {{ day_labels|tojson }},
+    mood: {{ weekly_mood|tojson }},
+    activities: {{ weekly_activities|tojson }}
+  };
+
+  // Common sparkline options
+  const sparkOptions = {
+    plugins: { legend: { display: false }, tooltip: { enabled: false } },
+    responsive: false,
+    maintainAspectRatio: false,
+    scales: {
+      x: { display: false },
+      y: { display: false }
+    },
+    elements: { point: { radius: 0 } }
+  };
+
+  // Mood sparkline
+  const moodEl = document.getElementById('sparklineMood');
+  if (moodEl) {
+    new Chart(moodEl.getContext('2d'), {
+      type: 'line',
+      data: {
+        labels: dashData.labels,
+        datasets: [{
+          data: dashData.mood,
+          borderColor: '#10b981',
+          borderWidth: 2,
+          tension: 0.35,
+          fill: true,
+          backgroundColor: (ctx) => {
+            const g = ctx.chart.ctx.createLinearGradient(0,0,0,80);
+            g.addColorStop(0, 'rgba(16,185,129,0.12)');
+            g.addColorStop(1, 'rgba(16,185,129,0.02)');
+            return g;
+          }
+        }]
+      },
+      options: sparkOptions
+    });
+  }
+
+  // Activity sparkline
+  const actEl = document.getElementById('sparklineActivity');
+  if (actEl) {
+    new Chart(actEl.getContext('2d'), {
+      type: 'bar',
+      data: {
+        labels: dashData.labels,
+        datasets: [{
+          data: dashData.activities,
+          backgroundColor: '#14b8a6',
+          barPercentage: 0.6
+        }]
+      },
+      options: Object.assign({}, sparkOptions, {
+        elements: { point: { radius: 0 } }
+      })
+    });
+  }
+
+  // Copy AI one-liner
+  document.getElementById('copyAiBtn')?.addEventListener('click', async () => {
+    const txt = document.getElementById('aiLine')?.innerText || '';
+    if (!txt) return alert('No insight available');
+    try {
+      await navigator.clipboard.writeText(txt);
+      alert('AI insight copied to clipboard');
+    } catch (e) {
+      alert('Copy failed — select & copy manually');
+    }
+  });
+</script>
 {% endblock %}

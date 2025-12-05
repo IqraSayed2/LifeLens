@@ -47,3 +47,7 @@ def create_app():
     app.register_blueprint(main_bp)
 
     return app
+
+
+from dotenv import load_dotenv
+load_dotenv()

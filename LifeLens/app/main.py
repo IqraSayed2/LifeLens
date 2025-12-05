@@ -6,8 +6,38 @@ from sqlalchemy import func
 import numpy as np
 from sklearn.linear_model import LinearRegression
 from sklearn.preprocessing import StandardScaler
+import os
+from groq import Groq
+import json
+from datetime import date, timedelta
+from flask import current_app
+
+
+client = Groq(api_key=os.getenv("GROQ_API_KEY"))
 
 main_bp = Blueprint('main', __name__)
+
+def generate_ai_one_liner(avg_mood, completed_habits, total_habits):
+    """Generate a quick AI insight for the dashboard"""
+    insights = []
+    
+    if total_habits > 0:
+        habit_rate = (completed_habits / total_habits) * 100
+        if habit_rate == 100:
+            insights.append("Perfect habit day! 🎉 Keep this momentum.")
+        elif habit_rate >= 75:
+            insights.append("Great habit progress! You're on track.")
+        elif habit_rate >= 50:
+            insights.append("Good start today. Complete the remaining habits.")
+        else:
+            insights.append("Let's boost today's habit completion.")
+    
+    if avg_mood >= 8:
+        insights.append("Your mood is excellent today!")
+    elif avg_mood <= 4:
+        insights.append("Take a moment to self-care. Your mood matters.")
+    
+    return insights[0] if insights else "Keep consistent — small steps add up. 💪"
 
 @main_bp.route('/')
 def index():
@@ -17,7 +47,83 @@ def index():
 @main_bp.route('/dashboard')
 @login_required
 def dashboard():
-    return render_template('dashboard.html', user=current_user)
+    today = date.today()
+    
+    # Mood data
+    latest_mood = Mood.query.filter_by(user_id=current_user.id).order_by(Mood.date.desc()).first()
+    
+    # Water today (sum all water entries for today)
+    today_nutrition_entries = Nutrition.query.filter_by(user_id=current_user.id, date=today).all()
+    today_water = sum(n.water for n in today_nutrition_entries)
+    
+    # Water this week
+    week_start = today - timedelta(days=7)
+    week_nutrition = Nutrition.query.filter_by(user_id=current_user.id).filter(Nutrition.date >= week_start).all()
+    week_water_total = sum(n.water for n in week_nutrition)
+    
+    # Habits today
+    habits = Habit.query.filter_by(user_id=current_user.id).all()
+    total_habits = len(habits)
+    completed_today = HabitLog.query.filter_by(user_id=current_user.id, date=today, is_completed=True).count()
+    completion_rate = round((completed_today / total_habits * 100) if total_habits > 0 else 0)
+    
+    # Calories today
+    today_activity = Activity.query.filter_by(user_id=current_user.id, date=today).all()
+    today_calories_burned = sum(a.calories for a in today_activity)
+    today_activity_count = len(today_activity)
+    calories_today = sum(n.calories for n in today_nutrition_entries)
+    
+    # Weekly activity
+    activities_week = Activity.query.filter_by(user_id=current_user.id).filter(Activity.date >= week_start).all()
+    total_weekly_activities = len(activities_week)
+    
+    # Calculate activity count per day for the sparkline
+    weekly_activities_by_day = []
+    for i in range(7):
+        day = today - timedelta(days=6-i)
+        count = Activity.query.filter_by(user_id=current_user.id, date=day).count()
+        weekly_activities_by_day.append(count)
+    
+    # Weekly mood
+    moods_week = Mood.query.filter_by(user_id=current_user.id).filter(Mood.date >= week_start).order_by(Mood.date.asc()).all()
+    weekly_mood = [m.mood_score for m in moods_week] if moods_week else [0]*7
+    
+    # Day labels
+    day_labels = [(today - timedelta(days=6-i)).strftime('%a') for i in range(7)]
+    
+    # Average mood
+    avg_mood = round(sum(m.mood_score for m in moods_week) / len(moods_week)) if moods_week else 0
+    
+    # Longest streak
+    longest_streak = 0
+    for habit in habits:
+        streak = compute_streak(habit)
+        if streak > longest_streak:
+            longest_streak = streak
+    
+    # AI one-liner
+    ai_one_liner = generate_ai_one_liner(avg_mood, completed_today, total_habits)
+    
+    return render_template(
+        'dashboard.html',
+        user=current_user,
+        latest_mood=latest_mood,
+        today_water=today_water,
+        week_water_total=week_water_total,
+        total_habits=total_habits,
+        completed_today=completed_today,
+        completion_rate=completion_rate,
+        today_calories_burned=today_calories_burned,
+        today_activity_count=today_activity_count,
+        calories_today=calories_today,
+        total_weekly_activities=total_weekly_activities,
+        weekly_mood=weekly_mood,
+        weekly_activities=weekly_activities_by_day,
+        day_labels=day_labels,
+        avg_mood=avg_mood,
+        longest_streak=longest_streak,
+        ai_one_liner=ai_one_liner
+    )
 
 
 @main_bp.route('/activity')
@@ -123,6 +229,7 @@ def nutrition():
     return render_template('nutrition.html', meals=meals)
 
 
+@login_required
 def compute_streak(habit, max_days=365):
     """
     Return consecutive days count for which habit was completed.
@@ -154,6 +261,7 @@ def compute_streak(habit, max_days=365):
             break
     
     return streak
+
 
 @main_bp.route('/habits')
 @login_required
@@ -192,6 +300,7 @@ def habits():
         completion_rate=completion_rate,
         streaks=streaks
     )
+
 
 @main_bp.route('/add_habit', methods=['POST'])
 @login_required
@@ -322,6 +431,7 @@ def analytics():
         Nutrition.user_id == current_user.id,
         Nutrition.date == today
     ).scalar() or 0
+    today_water = int(today_water)
 
     # 1. MOOD DISTRIBUTION PIE CHART (last 7 days mood types)
     mood_records = Mood.query.filter(
@@ -421,6 +531,7 @@ def analytics():
     )
 
 
+@login_required
 def analyze_wellness(activity_list, mood_list, calories_list):
     # Convert to numpy arrays
     X = np.array([activity_list, calories_list]).T
@@ -455,6 +566,7 @@ def analyze_wellness(activity_list, mood_list, calories_list):
     }
 
 
+@login_required
 def generate_ai_text(activity_corr, calorie_corr):
     insight = ""
 
@@ -485,8 +597,235 @@ def generate_ai_text(activity_corr, calorie_corr):
     return insight + " Recommendation: " + recommendation
 
 
+@main_bp.route("/apply_recommendation", methods=['POST'])
+@login_required
+def apply_recommendation():
+    """Apply a recommendation and create a habit (all categories convert to habits)"""
+    data = request.get_json() or {}
+    title = data.get('title')
+    category = data.get('category')
+    description = data.get('description', '')
+    
+    if not title or not category:
+        return jsonify({"error": "title and category required"}), 400
+    
+    try:
+        # Create habit from ANY recommendation category
+        # Map category to appropriate habit description
+        if category == 'activity':
+            habit_description = f"Activity: {description}"
+        elif category == 'mood':
+            habit_description = f"Mood practice: {description}"
+        elif category == 'nutrition':
+            habit_description = f"Nutrition: {description}"
+        elif category == 'habits':
+            habit_description = description
+        else:
+            return jsonify({"error": "Invalid category"}), 400
+        
+        # Create habit in UNCOMPLETED state
+        new_habit = Habit(
+            user_id=current_user.id,
+            name=title,
+            description=habit_description,
+            frequency='daily',
+            target_count=1
+        )
+        db.session.add(new_habit)
+        db.session.commit()
+        
+        # DO NOT create a log entry - leave it uncompleted
+        # User must manually mark it complete in habits page
+        
+        return jsonify({
+            "success": True,
+            "message": f"Habit '{title}' created! Mark it complete when done.",
+            "type": "habit",
+            "habit_id": new_habit.id
+        }), 201
+    
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({"error": str(e)}), 500
 
 
-@main_bp.route('/recommendation')
+@main_bp.route("/recommendation")
+@login_required
 def recommendation():
-    return render_template('recommendation.html')
+    today = date.today()
+
+    # Build weekly data ------------------------------------
+    days = [(today - timedelta(days=i)) for i in range(6, -1, -1)]
+
+    weekly_activities = [
+        Activity.query.filter_by(user_id=current_user.id, date=d).count()
+        for d in days
+    ]
+
+    weekly_mood = [
+        (Mood.query.filter_by(user_id=current_user.id, date=d).first().mood_score
+         if Mood.query.filter_by(user_id=current_user.id, date=d).first() else 0)
+        for d in days
+    ]
+
+    weekly_calories = []
+    for d in days:
+        acts = Activity.query.filter_by(user_id=current_user.id, date=d).all()
+        weekly_calories.append(int(sum(a.calories for a in acts)))
+
+    today_water = db.session.query(db.func.sum(Nutrition.water)).filter(
+        Nutrition.user_id == current_user.id, Nutrition.date == today
+    ).scalar() or 0
+    today_water = int(today_water)
+
+    total_habits = Habit.query.filter_by(user_id=current_user.id).count()
+    completed_today = HabitLog.query.filter_by(
+        user_id=current_user.id, date=today, is_completed=True
+    ).count()
+    habit_success = int((completed_today/total_habits)*100) if total_habits else 0
+
+    weekly_data = {
+        "activities": weekly_activities,
+        "mood": weekly_mood,
+        "calories": weekly_calories,
+        "water_today": today_water,
+        "habit_success": habit_success
+    }
+
+    # CALL AI (Groq)
+    ai_recs = generate_ai_recommendations(weekly_data)
+
+    return render_template(
+        "recommendation.html",
+        recs=ai_recs
+    )
+
+
+@login_required
+def generate_ai_recommendations(weekly_data):
+    prompt = f"""
+    You are a wellness AI coach. Based on the user's weekly data below, 
+    generate personalized and actionable recommendations.
+
+    IMPORTANT: Generate EXACTLY 3 recommendations for EACH category with one High, one Medium, and one Low priority item.
+
+    The output MUST be ONLY valid JSON in this exact structure:
+
+    {{
+        "activity": [
+            {{
+                "title": "Recommendation 1",
+                "description": "Description for recommendation 1",
+                "priority": "High",
+                "meta": ["detail1", "detail2"],
+                "icon": "fa-running"
+            }},
+            {{
+                "title": "Recommendation 2",
+                "description": "Description for recommendation 2",
+                "priority": "Medium",
+                "meta": ["detail1", "detail2"],
+                "icon": "fa-dumbbell"
+            }},
+            {{
+                "title": "Recommendation 3",
+                "description": "Description for recommendation 3",
+                "priority": "Low",
+                "meta": ["detail1", "detail2"],
+                "icon": "fa-hiking"
+            }}
+        ],
+        "mood": [
+            {{
+                "title": "Recommendation 1",
+                "description": "Description for recommendation 1",
+                "priority": "High",
+                "meta": ["detail1", "detail2"],
+                "icon": "fa-smile"
+            }},
+            {{
+                "title": "Recommendation 2",
+                "description": "Description for recommendation 2",
+                "priority": "Medium",
+                "meta": ["detail1", "detail2"],
+                "icon": "fa-heart"
+            }},
+            {{
+                "title": "Recommendation 3",
+                "description": "Description for recommendation 3",
+                "priority": "Low",
+                "meta": ["detail1", "detail2"],
+                "icon": "fa-music"
+            }}
+        ],
+        "nutrition": [
+            {{
+                "title": "Recommendation 1",
+                "description": "Description for recommendation 1",
+                "priority": "High",
+                "meta": ["detail1", "detail2"],
+                "icon": "fa-apple-alt"
+            }},
+            {{
+                "title": "Recommendation 2",
+                "description": "Description for recommendation 2",
+                "priority": "Medium",
+                "meta": ["detail1", "detail2"],
+                "icon": "fa-water"
+            }},
+            {{
+                "title": "Recommendation 3",
+                "description": "Description for recommendation 3",
+                "priority": "Low",
+                "meta": ["detail1", "detail2"],
+                "icon": "fa-carrot"
+            }}
+        ],
+        "habits": [
+            {{
+                "title": "Recommendation 1",
+                "description": "Description for recommendation 1",
+                "priority": "High",
+                "meta": ["detail1", "detail2"],
+                "icon": "fa-check-circle"
+            }},
+            {{
+                "title": "Recommendation 2",
+                "description": "Description for recommendation 2",
+                "priority": "Medium",
+                "meta": ["detail1", "detail2"],
+                "icon": "fa-bullseye"
+            }},
+            {{
+                "title": "Recommendation 3",
+                "description": "Description for recommendation 3",
+                "priority": "Low",
+                "meta": ["detail1", "detail2"],
+                "icon": "fa-calendar"
+            }}
+        ]
+    }}
+
+    Return ONLY valid JSON. No extra text before or after.
+
+    USER WEEKLY DATA:
+    {json.dumps(weekly_data, indent=2)}
+    """
+
+    response = client.chat.completions.create(
+        model="llama-3.1-8b-instant",
+        messages=[{"role": "user", "content": prompt}],
+        temperature=0.4
+    )
+
+    content = response.choices[0].message.content.strip()
+
+    try:
+        result = json.loads(content)
+        result["activity"] = (result.get("activity") or [])[:3]
+        result["mood"] = (result.get("mood") or [])[:3]
+        result["nutrition"] = (result.get("nutrition") or [])[:3]
+        result["habits"] = (result.get("habits") or [])[:3]
+        return result
+    except:
+        return {"error": "Invalid JSON returned by AI", "raw": content}

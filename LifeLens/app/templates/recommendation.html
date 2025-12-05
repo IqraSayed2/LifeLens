@@ -1,1 +1,296 @@
-<h1>recommendation</h1>
+{% extends "base.html" %} 
+{% block title %}AI Recommendations{% endblock %} 
+{% block content %}
+
+<div class="recommend-container">
+  <main class="recommend-main-content">
+    <div class="recommend-page-title">
+      <h2>
+        AI-Powered Recommendations
+        <span class="recommend-ai-badge">
+          <i class="fas fa-brain"></i> ML/AI Generated
+        </span>
+      </h2>
+      <p>Personalized advice based on your real wellness data</p>
+    </div>
+
+    <button class="recommend-refresh-btn" onclick="refreshRecommendations()">
+      <i class="fas fa-sync-alt"></i> Generate New Recommendations
+    </button>
+
+    <!-- Activity Section  -->
+    <div class="recommend-category-section">
+      <div class="recommend-category-header">
+        <div class="recommend-category-icon recommend-icon-blue">
+          <i class="fas fa-running"></i>
+        </div>
+        <div class="recommend-category-title">
+          <h3>Activity Recommendations</h3>
+          <p>Optimize your physical wellness</p>
+        </div>
+      </div>
+
+      <div class="recommend-tips-grid">
+        {% for item in recs.activity[0:3] %}
+        <div class="recommend-tip-card recommend-tip-card-blue">
+          <div class="recommend-tip-header">
+            <div class="recommend-tip-icon">
+              <i class="fas {{ item.icon }}"></i>
+            </div>
+            <span
+              class="recommend-tip-priority {% if item.priority=='High' %}recommend-priority-high {% elif item.priority=='Medium' %}recommend-priority-medium {% else %}recommend-priority-low{% endif %}"
+              >{{ item.priority }}</span
+            >
+          </div>
+
+          <h4 class="recommend-tip-title">{{ item.title }}</h4>
+          <p class="recommend-tip-description">{{ item.description }}</p>
+
+          <div class="recommend-tip-meta">
+            {% for m in item.meta %}
+            <span><i class="fas fa-check"></i> {{ m }}</span>
+            {% endfor %}
+          </div>
+
+          <button
+            class="recommend-action-btn"
+            onclick="applyRecommendation('{{ item.title }}', 'activity', '{{ item.description }}')"
+          >
+            ✓ Apply Recommendation
+          </button>
+        </div>
+        {% endfor %}
+      </div>
+    </div>
+
+    <!-- Mood Section -->
+    <div class="recommend-category-section">
+      <div class="recommend-category-header">
+        <div class="recommend-category-icon recommend-icon-pink">
+          <i class="fas fa-heart"></i>
+        </div>
+        <div class="recommend-category-title">
+          <h3>Mood & Energy Optimization</h3>
+          <p>Improve emotional well-being</p>
+        </div>
+      </div>
+
+      <div class="recommend-tips-grid">
+        {% for item in recs.mood[0:3] %}
+        <div class="recommend-tip-card recommend-tip-card-pink">
+          <div class="recommend-tip-header">
+            <div class="recommend-tip-icon">
+              <i class="fas {{ item.icon }}"></i>
+            </div>
+            <span
+              class="recommend-tip-priority {% if item.priority=='High' %}recommend-priority-high {% elif item.priority=='Medium' %}recommend-priority-medium {% else %}recommend-priority-low{% endif %}"
+              >{{ item.priority }}</span
+            >
+          </div>
+
+          <h4 class="recommend-tip-title">{{ item.title }}</h4>
+          <p class="recommend-tip-description">{{ item.description }}</p>
+
+          <div class="recommend-tip-meta">
+            {% for m in item.meta %}
+            <span><i class="fas fa-check"></i> {{ m }}</span>
+            {% endfor %}
+          </div>
+
+          <button
+            class="recommend-action-btn"
+            onclick="applyRecommendation('{{ item.title }}', 'mood', '{{ item.description }}')"
+          >
+            ✓ Apply Recommendation
+          </button>
+        </div>
+        {% endfor %}
+      </div>
+    </div>
+
+    <!-- Nutrition Section -->
+    <div class="recommend-category-section">
+      <div class="recommend-category-header">
+        <div class="recommend-category-icon recommend-icon-green">
+          <i class="fas fa-apple-alt"></i>
+        </div>
+        <div class="recommend-category-title">
+          <h3>Nutrition Guidance</h3>
+          <p>Fuel your body properly</p>
+        </div>
+      </div>
+
+      <div class="recommend-tips-grid">
+        {% for item in recs.nutrition[0:3] %}
+        <div class="recommend-tip-card recommend-tip-card-green">
+          <div class="recommend-tip-header">
+            <div class="recommend-tip-icon">
+              <i class="fas {{ item.icon }}"></i>
+            </div>
+            <span
+              class="recommend-tip-priority {% if item.priority=='High' %}recommend-priority-high {% elif item.priority=='Medium' %}recommend-priority-medium {% else %}recommend-priority-low{% endif %}"
+              >{{ item.priority }}</span
+            >
+          </div>
+
+          <h4 class="recommend-tip-title">{{ item.title }}</h4>
+          <p class="recommend-tip-description">{{ item.description }}</p>
+
+          <div class="recommend-tip-meta">
+            {% for m in item.meta %}
+            <span><i class="fas fa-check"></i> {{ m }}</span>
+            {% endfor %}
+          </div>
+
+          <button
+            class="recommend-action-btn"
+            onclick="applyRecommendation('{{ item.title }}', 'nutrition', '{{ item.description }}')"
+          >
+            ✓ Apply Recommendation
+          </button>
+        </div>
+        {% endfor %}
+      </div>
+    </div>
+
+    <!-- Habit Section -->
+    <div class="recommend-category-section">
+      <div class="recommend-category-header">
+        <div class="recommend-category-icon recommend-icon-orange">
+          <i class="fas fa-bullseye"></i>
+        </div>
+        <div class="recommend-category-title">
+          <h3>Habit Building Strategies</h3>
+          <p>Create habits that last</p>
+        </div>
+      </div>
+
+      <div class="recommend-tips-grid">
+        {% for item in recs.habits[0:3] %}
+        <div class="recommend-tip-card recommend-tip-card-orange">
+          <div class="recommend-tip-header">
+            <div class="recommend-tip-icon">
+              <i class="fas {{ item.icon }}"></i>
+            </div>
+            <span
+              class="recommend-tip-priority {% if item.priority=='High' %}recommend-priority-high {% elif item.priority=='Medium' %}recommend-priority-medium {% else %}recommend-priority-low{% endif %}"
+              >{{ item.priority }}</span
+            >
+          </div>
+
+          <h4 class="recommend-tip-title">{{ item.title }}</h4>
+          <p class="recommend-tip-description">{{ item.description }}</p>
+
+          <div class="recommend-tip-meta">
+            {% for m in item.meta %}
+            <span><i class="fas fa-check"></i> {{ m }}</span>
+            {% endfor %}
+          </div>
+
+          <button
+            class="recommend-action-btn"
+            onclick="applyRecommendation('{{ item.title }}', 'habits', '{{ item.description }}')"
+          >
+            ✓ Apply Recommendation
+          </button>
+        </div>
+        {% endfor %}
+      </div>
+    </div>
+  </main>
+</div>
+
+<!-- JS -->
+<script>
+  function refreshRecommendations() {
+    const btn = document.querySelector(".recommend-refresh-btn");
+    const icon = btn.querySelector("i");
+
+    // spin animation
+    icon.style.animation = "spin 1s linear infinite";
+    btn.disabled = true;
+    btn.style.opacity = "0.7";
+
+    setTimeout(() => {
+      location.reload(); // reload page → regenerate AI
+    }, 1200);
+  }
+
+  function applyRecommendation(title, category, description = '') {
+    // Send to backend to create habit
+    fetch('/apply_recommendation', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        title: title,
+        category: category,
+        description: description
+      })
+    })
+    .then(response => response.json())
+    .then(data => {
+      if (data.success) {
+        // Show success notification
+        showNotification(data.message, 'success');
+        console.log(`✓ Recommendation applied as habit: ${title} (${category})`);
+      } else {
+        showNotification(data.error || 'Failed to apply recommendation', 'error');
+        console.error('Error applying recommendation:', data);
+      }
+    })
+    .catch(error => {
+      showNotification('Error applying recommendation', 'error');
+      console.error('Fetch error:', error);
+    });
+  }
+
+  function showNotification(message, type = 'success') {
+    // Create notification element
+    const notification = document.createElement('div');
+    notification.className = `notification notification-${type}`;
+    notification.textContent = message;
+    notification.style.cssText = `
+      position: fixed;
+      top: 20px;
+      right: 20px;
+      padding: 1rem 1.5rem;
+      border-radius: 10px;
+      font-weight: 600;
+      z-index: 10000;
+      animation: slideIn 0.3s ease;
+      max-width: 400px;
+      word-wrap: break-word;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+    `;
+    
+    if (type === 'success') {
+      notification.style.backgroundColor = '#10b981';
+      notification.style.color = 'white';
+    } else {
+      notification.style.backgroundColor = '#ef4444';
+      notification.style.color = 'white';
+    }
+    
+    document.body.appendChild(notification);
+    
+    // Auto remove after 4 seconds
+    setTimeout(() => {
+      notification.style.animation = 'slideOut 0.3s ease';
+      setTimeout(() => notification.remove(), 300);
+    }, 4000);
+  }
+
+  // Add spin animation rule
+  const style = document.createElement("style");
+  style.textContent = `
+            @keyframes spin {
+                from { transform: rotate(0deg); }
+                to { transform: rotate(360deg); }
+            }
+        `;
+  document.head.appendChild(style);
+</script>
+
+{% endblock %}
