@@ -18,15 +18,20 @@ def login_signup():
 
         # ---------- LOGIN ----------
         if form_type == 'login':
-            username = request.form.get('username')
+            identifier = request.form.get('username') 
             password = request.form.get('password')
 
-            user = User.query.filter_by(username=username).first()
+            # Check if identifier is an email or username
+            if '@' in identifier:
+                user = User.query.filter_by(email=identifier).first()
+            else:
+                user = User.query.filter_by(username=identifier).first()
+
             if user and check_password_hash(user.password, password):
                 login_user(user)
                 return redirect(url_for('main.dashboard'))
             else:
-                flash('Invalid username or password.', 'error')
+                flash('Invalid username/email or password.', 'error')
                 return redirect(url_for('auth.login_signup'))
 
         # ---------- SIGNUP ----------

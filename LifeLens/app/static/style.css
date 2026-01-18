@@ -153,6 +153,7 @@
   display: inline-flex;
   align-items: center;
   gap: 0.5rem;
+  text-decoration: none
 }
 
 .landing-hero-btn-primary:hover {
@@ -170,6 +171,7 @@
   font-size: 1.125rem;
   cursor: pointer;
   transition: all 0.3s;
+  text-decoration: none;
 }
 
 .landing-hero-btn-secondary:hover {

@@ -225,6 +225,20 @@
 
       <!-- Login Card -->
       <div class="login-card">
+        <!-- Flash Messages -->
+        {% with messages = get_flashed_messages(with_categories=true) %}
+        {% if messages %}
+        <div class="mb-3">
+          {% for category, message in messages %}
+          <div class="alert alert-{{ 'danger' if category == 'error' else 'success' }} alert-dismissible fade show" role="alert">
+            {{ message }}
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+          </div>
+          {% endfor %}
+        </div>
+        {% endif %}
+        {% endwith %}
+
         <!-- Tabs -->
         <div class="login-tabs">
           <button class="login-tab active" onclick="switchTab('login')">
@@ -241,14 +255,14 @@
             <input type="hidden" name="form_type" value="login" />
 
             <div class="login-form-group">
-              <label class="login-form-label">Username</label>
+              <label class="login-form-label">Username or Email</label>
               <div class="login-input-wrapper">
                 <i class="fas fa-user login-input-icon"></i>
                 <input
                   type="text"
                   class="login-form-input"
                   name="username"
-                  placeholder="Your username"
+                  placeholder="Your username or email"
                   required
                 />
               </div>
