@@ -52,9 +52,13 @@ def dashboard():
     # Mood data
     latest_mood = Mood.query.filter_by(user_id=current_user.id).order_by(Mood.date.desc()).first()
     
-    # Water today (sum all water entries for today)
-    today_nutrition_entries = Nutrition.query.filter_by(user_id=current_user.id, date=today).all()
-    today_water = sum(n.water for n in today_nutrition_entries)
+    # Get the most recent date with nutrition data
+    latest_nutrition_date = db.session.query(db.func.max(Nutrition.date)).filter_by(user_id=current_user.id).scalar()
+    display_date = latest_nutrition_date if latest_nutrition_date else today
+    
+    # Water for display date (sum all water entries for that date)
+    display_nutrition_entries = Nutrition.query.filter_by(user_id=current_user.id, date=display_date).all()
+    today_water = sum(n.water for n in display_nutrition_entries)
     
     # Water this week
     week_start = today - timedelta(days=7)
@@ -67,11 +71,11 @@ def dashboard():
     completed_today = HabitLog.query.filter_by(user_id=current_user.id, date=today, is_completed=True).count()
     completion_rate = round((completed_today / total_habits * 100) if total_habits > 0 else 0)
     
-    # Calories today
+    # Calories for display date
     today_activity = Activity.query.filter_by(user_id=current_user.id, date=today).all()
     today_calories_burned = sum(a.calories for a in today_activity)
     today_activity_count = len(today_activity)
-    calories_today = sum(n.calories for n in today_nutrition_entries)
+    calories_today = sum(n.calories for n in display_nutrition_entries)
     
     # Weekly activity
     activities_week = Activity.query.filter_by(user_id=current_user.id).filter(Activity.date >= week_start).all()
@@ -85,8 +89,14 @@ def dashboard():
         weekly_activities_by_day.append(count)
     
     # Weekly mood
-    moods_week = Mood.query.filter_by(user_id=current_user.id).filter(Mood.date >= week_start).order_by(Mood.date.asc()).all()
-    weekly_mood = [m.mood_score for m in moods_week] if moods_week else [0]*7
+    weekly_mood = []
+    for i in range(7):
+        day = today - timedelta(days=6-i)
+        m = Mood.query.filter_by(user_id=current_user.id, date=day).first()
+        weekly_mood.append(m.mood_score if m else 0)
+    
+    # For average mood calculation
+    moods_week = Mood.query.filter_by(user_id=current_user.id).filter(Mood.date >= week_start).all()
     
     # Day labels
     day_labels = [(today - timedelta(days=6-i)).strftime('%a') for i in range(7)]

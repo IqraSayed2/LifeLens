@@ -88,7 +88,7 @@
         <div class="dashboard-progress-small">
           <div
             class="progress-fill"
-            style="width:{{ pct if pct <= 100 else 100 }}%"
+            style="width:{{ pct }}%"
           ></div>
         </div>
       </div>
@@ -264,14 +264,14 @@
 
   // Common sparkline options
   const sparkOptions = {
-    plugins: { legend: { display: false }, tooltip: { enabled: false } },
+    plugins: { legend: { display: false }, tooltip: { enabled: true } },
     responsive: false,
     maintainAspectRatio: false,
     scales: {
-      x: { display: false },
-      y: { display: false }
+      x: { display: true, ticks: { font: { size: 10 } } },
+      y: { display: true, beginAtZero: true, grid: { display: false }, ticks: { display: true, font: { size: 10 } } }
     },
-    elements: { point: { radius: 0 } }
+    elements: { point: { radius: 2 } }
   };
 
   // Mood sparkline
